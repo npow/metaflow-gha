@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "metaflow-gha"
+version = "0.1.0"
+description = "GitHub Actions compute backend for Metaflow"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "Apache-2.0" }
+dependencies = [
+    "metaflow",
+]
+
+[project.optional-dependencies]
+coordinator = [
+    "metaflow-coordinator",
+]
+dev = [
+    "pytest",
+    "boto3",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["metaflow_extensions*"]
+
+[project.entry-points."metaflow.plugins"]
+gha = "metaflow_extensions.gha.plugins"

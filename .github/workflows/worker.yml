@@ -1,0 +1,85 @@
+name: Metaflow GHA Worker
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Metaflow run ID"
+        required: true
+        type: string
+      worker_index:
+        description: "Worker index (0-based)"
+        required: true
+        type: string
+      s3_root:
+        description: "METAFLOW_DATASTORE_SYSROOT_S3 value"
+        required: true
+        type: string
+
+  workflow_call:
+    inputs:
+      run_id:
+        required: true
+        type: string
+      worker_index:
+        required: true
+        type: string
+      s3_root:
+        required: true
+        type: string
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: false
+      AWS_SECRET_ACCESS_KEY:
+        required: false
+      AWS_SESSION_TOKEN:
+        required: false
+
+jobs:
+  worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6-hour GHA limit
+
+    env:
+      METAFLOW_DATASTORE_SYSROOT_S3: ${{ inputs.s3_root }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+
+    steps:
+      - name: Checkout metaflow-gha (for worker code)
+        uses: actions/checkout@v4
+        with:
+          repository: npow/metaflow-gha
+          path: metaflow-gha
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # Cache base pip packages by Python version + ISO week.
+      # Refreshes weekly; shared across all runs in the same week.
+      # The code package tarball is cached per-SHA on local disk by worker.py.
+      - name: Set pip cache week key
+        run: echo "YEAR_WEEK=$(date +%Y-%W)" >> "$GITHUB_ENV"
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: mf-gha-pip-3.10-${{ env.YEAR_WEEK }}
+          restore-keys: |
+            mf-gha-pip-3.10-
+
+      - name: Install metaflow-gha and dependencies
+        run: |
+          pip install -q metaflow boto3
+          pip install -q -e metaflow-gha/
+
+      - name: Run worker
+        run: |
+          python -m metaflow_extensions.gha.plugins.gha_cli worker \
+            --run-id "${{ inputs.run_id }}" \
+            --worker-id "gha-${{ inputs.worker_index }}-${{ github.run_id }}" \
+            --max-idle-seconds 300
