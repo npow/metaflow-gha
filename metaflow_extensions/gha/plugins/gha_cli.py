@@ -88,6 +88,10 @@ def step(
         for p in input_paths.split(","):
             parts = p.split("/")
             if len(parts) >= 3:
+                # `_parameters/*` is a synthetic local task and should not gate
+                # remote scheduling in the GHA queue.
+                if parts[1] == "_parameters":
+                    continue
                 parent_task_ids.append(parts[2])
 
     task = {
