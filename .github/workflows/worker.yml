@@ -86,7 +86,7 @@ jobs:
 
       - name: Install metaflow-gha and dependencies
         run: |
-          pip install -q metaflow boto3
+          pip install -q metaflow boto3 metaflow-coordinator
           pip install -q -e metaflow-gha/
 
       - name: Run worker
