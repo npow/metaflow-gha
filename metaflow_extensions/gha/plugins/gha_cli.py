@@ -84,17 +84,10 @@ def step(
 
     pathspec = f"{flow_name}/{run_id}/{step_name}/{task_id}"
 
-    # Derive parent task IDs from input_paths (run_id/step_name/task_id/attempt format)
-    parent_task_ids: list[str] = []
-    if input_paths:
-        for p in input_paths.split(","):
-            parts = p.split("/")
-            if len(parts) >= 3:
-                # `_parameters/*` is a synthetic local task and should not gate
-                # remote scheduling in the GHA queue.
-                if parts[1] == "_parameters":
-                    continue
-                parent_task_ids.append(parts[2])
+    # Derive parent task IDs from input_paths (run_id/step_name/task_id/attempt format).
+    # input_paths may be compressed (e.g. "17/fanout/4:5"), so use Metaflow's
+    # decompressor instead of naive comma splitting.
+    parent_task_ids = _extract_parent_task_ids(input_paths)
 
     task = {
         "task_id": task_id,
@@ -127,6 +120,29 @@ def step(
 
     # Poll for completion, streaming logs and reclaiming stale tasks
     _wait_for_task(client, run_id, task_id, timeout)
+
+
+def _extract_parent_task_ids(input_paths: str | None) -> list[str]:
+    from metaflow.util import decompress_list
+
+    parent_task_ids: list[str] = []
+    if not input_paths:
+        return parent_task_ids
+
+    try:
+        expanded_paths = decompress_list(input_paths)
+    except Exception:
+        expanded_paths = input_paths.split(",")
+
+    for p in expanded_paths:
+        parts = p.split("/")
+        if len(parts) < 3:
+            continue
+        # `_parameters/*` is synthetic local setup and should not gate queueing.
+        if parts[1] == "_parameters":
+            continue
+        parent_task_ids.append(parts[2])
+    return parent_task_ids
 
 
 _RECLAIM_INTERVAL = 60.0   # seconds between reclaim_stale calls
