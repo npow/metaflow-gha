@@ -123,6 +123,7 @@ class GHAClient:
           - AWS_ACCESS_KEY_ID
           - AWS_SECRET_ACCESS_KEY
           - AWS_SESSION_TOKEN
+          - METAFLOW_SERVICE_AUTH_KEY
         Variables:
           - AWS_ENDPOINT_URL_S3
           - METAFLOW_S3_ENDPOINT_URL
@@ -131,6 +132,7 @@ class GHAClient:
             "AWS_ACCESS_KEY_ID",
             "AWS_SECRET_ACCESS_KEY",
             "AWS_SESSION_TOKEN",
+            "METAFLOW_SERVICE_AUTH_KEY",
         ]
         variable_keys = [
             "AWS_ENDPOINT_URL_S3",
@@ -252,6 +254,10 @@ on:
       s3_root:
         required: true
         type: string
+      worker_ref:
+        required: false
+        default: "main"
+        type: string
 
 jobs:
   worker:
@@ -260,5 +266,6 @@ jobs:
       run_id: ${{{{ inputs.run_id }}}}
       worker_index: ${{{{ inputs.worker_index }}}}
       s3_root: ${{{{ inputs.s3_root }}}}
+      worker_ref: ${{{{ inputs.worker_ref }}}}
     secrets: inherit
 """

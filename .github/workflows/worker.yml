@@ -43,6 +43,8 @@ on:
         required: false
       AWS_SESSION_TOKEN:
         required: false
+      METAFLOW_SERVICE_AUTH_KEY:
+        required: false
 
 jobs:
   worker:
@@ -53,6 +55,7 @@ jobs:
       METAFLOW_DATASTORE_SYSROOT_S3: ${{ inputs.s3_root }}
       METAFLOW_SERVICE_URL: ${{ vars.METAFLOW_SERVICE_URL }}
       METAFLOW_DEFAULT_METADATA: ${{ vars.METAFLOW_DEFAULT_METADATA }}
+      METAFLOW_SERVICE_AUTH_KEY: ${{ secrets.METAFLOW_SERVICE_AUTH_KEY }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
