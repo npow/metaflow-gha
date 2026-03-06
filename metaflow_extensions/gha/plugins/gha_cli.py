@@ -207,3 +207,7 @@ def worker(run_id, worker_id, max_idle_seconds):
 
     click.echo(f"[gha-worker] Starting worker {worker_id} for run {run_id}.")
     run_worker(run_id=run_id, worker_id=worker_id, max_idle_seconds=max_idle_seconds)
+
+
+if __name__ == "__main__":
+    cli()
