@@ -135,6 +135,8 @@ class GHAClient:
         variable_keys = [
             "AWS_ENDPOINT_URL_S3",
             "METAFLOW_S3_ENDPOINT_URL",
+            "METAFLOW_SERVICE_URL",
+            "METAFLOW_DEFAULT_METADATA",
         ]
 
         for key in secret_keys:
