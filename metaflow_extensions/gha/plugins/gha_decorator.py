@@ -14,6 +14,7 @@ Or applied flow-wide via CLI:
 """
 from __future__ import annotations
 
+import os
 import sys
 
 from metaflow.decorators import StepDecorator
@@ -122,6 +123,7 @@ class GHADecorator(StepDecorator):
             cli_args.command_options.update(
                 {
                     "flow-name": self.flow.name,
+                    "flow-file": os.path.basename(cli_args.entrypoint[1]),
                     "workers": self.attributes["workers"],
                     "timeout": self.attributes["timeout"],
                     "max-retries": self.attributes["max_retries"],

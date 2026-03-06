@@ -40,6 +40,7 @@ def gha():
 @click.argument("package_url")
 # Metaflow runtime injects these via cli_args.command_options (from default_args):
 @click.option("--flow-name", required=True, help="Metaflow flow class name.")
+@click.option("--flow-file", default=None, help="Flow script filename (e.g. myflow.py).")
 @click.option("--run-id", required=True, help="Metaflow run ID.")
 @click.option("--task-id", required=True, help="Metaflow task ID.")
 @click.option("--input-paths", default=None, help="Compressed input pathspecs.")
@@ -60,6 +61,7 @@ def step(
     package_sha,
     package_url,
     flow_name,
+    flow_file,
     run_id,
     task_id,
     input_paths,
@@ -99,6 +101,7 @@ def step(
         "run_id": run_id,
         "step_name": step_name,
         "flow_name": flow_name,
+        "flow_file": flow_file,
         "pathspec": pathspec,
         "input_paths": input_paths,
         "split_index": split_index,

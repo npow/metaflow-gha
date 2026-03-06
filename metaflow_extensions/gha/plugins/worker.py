@@ -210,7 +210,7 @@ def _build_step_command(task: dict, workdir: str) -> list[str]:
     Reconstruct the `python flow.py step` command for this task.
     All fields come from the task definition written by `gha step`.
     """
-    flow_file = f"{task['flow_name']}.py"
+    flow_file = task.get("flow_file") or f"{task['flow_name']}.py"
 
     cmd = [
         sys.executable,
