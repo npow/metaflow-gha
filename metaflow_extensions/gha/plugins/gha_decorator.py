@@ -151,11 +151,16 @@ class GHADecorator(StepDecorator):
         if cls.package_url is None:
             if hasattr(package, "package_url"):
                 # Pre-uploaded package path (FEAT_ALWAYS_UPLOAD_CODE_PACKAGE)
-                cls.package_url = package.package_url()
-                cls.package_sha = package.package_sha()
-                cls.package_metadata = package.package_metadata
-            else:
-                cls.package_url, cls.package_sha = flow_datastore.save_data(
-                    [package.blob], len_hint=1
-                )[0]
-                cls.package_metadata = package.package_metadata
+                pkg_url = package.package_url()
+                pkg_sha = package.package_sha()
+                if pkg_url and pkg_sha:
+                    cls.package_url = pkg_url
+                    cls.package_sha = pkg_sha
+                    cls.package_metadata = package.package_metadata
+                    return
+
+            # Fallback for environments where package_url() is empty.
+            cls.package_url, cls.package_sha = flow_datastore.save_data(
+                [package.blob], len_hint=1
+            )[0]
+            cls.package_metadata = package.package_metadata
