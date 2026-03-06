@@ -15,6 +15,11 @@ on:
         description: "METAFLOW_DATASTORE_SYSROOT_S3 value"
         required: true
         type: string
+      worker_ref:
+        description: "metaflow-gha git ref to checkout"
+        required: false
+        default: "main"
+        type: string
 
   workflow_call:
     inputs:
@@ -26,6 +31,10 @@ on:
         type: string
       s3_root:
         required: true
+        type: string
+      worker_ref:
+        required: false
+        default: "main"
         type: string
     secrets:
       AWS_ACCESS_KEY_ID:
@@ -45,12 +54,15 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+      AWS_ENDPOINT_URL_S3: ${{ vars.AWS_ENDPOINT_URL_S3 }}
+      METAFLOW_S3_ENDPOINT_URL: ${{ vars.METAFLOW_S3_ENDPOINT_URL }}
 
     steps:
       - name: Checkout metaflow-gha (for worker code)
         uses: actions/checkout@v4
         with:
           repository: npow/metaflow-gha
+          ref: ${{ inputs.worker_ref }}
           path: metaflow-gha
 
       - name: Set up Python

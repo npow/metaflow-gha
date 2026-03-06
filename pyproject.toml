@@ -11,15 +11,15 @@ requires-python = ">=3.8"
 license = { text = "Apache-2.0" }
 dependencies = [
     "metaflow",
+    "boto3>=1.28",
 ]
 
 [project.optional-dependencies]
 coordinator = [
-    "metaflow-coordinator",
+    "metaflow-coordinator>=0.1.5",
 ]
 dev = [
     "pytest",
-    "boto3",
 ]
 
 [tool.setuptools.packages.find]

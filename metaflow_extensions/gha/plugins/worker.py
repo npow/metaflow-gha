@@ -22,9 +22,8 @@ import tempfile
 import time
 import traceback
 
-import boto3
-
 from .s3_queue_client import S3QueueClient
+from .aws_client import make_s3_client
 
 # How often (in tasks processed) to check for stale claimed tasks
 _RECLAIM_EVERY_N = 10
@@ -41,7 +40,7 @@ def run_worker(
     worker_id: str,
     max_idle_seconds: int = 300,
 ) -> None:
-    s3 = boto3.client("s3")
+    s3 = make_s3_client()
     client = S3QueueClient.from_env(s3)
 
     preferred_step: str | None = None
@@ -173,8 +172,7 @@ def _fetch_code_package(package_url: str, package_sha: str, workdir: str) -> Non
         cached_path = os.path.join(workdir, "code.tar.gz")
 
     if not os.path.exists(cached_path):
-        import boto3
-        s3 = boto3.client("s3")
+        s3 = make_s3_client()
         url = package_url[len("s3://"):]
         bucket, _, key = url.partition("/")
         # Download to a temp path first, then rename atomically to avoid

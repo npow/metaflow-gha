@@ -15,11 +15,17 @@ import sys
 import time
 import uuid
 
-import click
+from metaflow._vendor import click
 
 
 @click.group()
 def cli():
+    """Root Metaflow extension CLI group."""
+    pass
+
+
+@cli.group(name="gha")
+def gha():
     """GitHub Actions compute backend for Metaflow."""
     pass
 
@@ -28,7 +34,7 @@ def cli():
 # `gha step`  (runs on the user's machine / Metaflow orchestrator)
 # ---------------------------------------------------------------------------
 
-@cli.command(help="Submit a step task to the GHA S3 queue and wait for completion.")
+@gha.command(help="Submit a step task to the GHA S3 queue and wait for completion.")
 @click.argument("step_name")
 @click.argument("package_sha")
 @click.argument("package_url")
@@ -68,10 +74,10 @@ def step(
     max_retries,
 ):
     """Push a Metaflow step task to the S3 queue and block until done or failed."""
-    import boto3
     from .s3_queue_client import S3QueueClient
+    from .aws_client import make_s3_client
 
-    s3 = boto3.client("s3")
+    s3 = make_s3_client()
     client = S3QueueClient.from_env(s3)
 
     pathspec = f"{flow_name}/{run_id}/{step_name}/{task_id}"
@@ -167,7 +173,7 @@ def _wait_for_task(client, run_id: str, task_id: str, timeout: int) -> None:
 # `gha worker`  (runs inside the GHA runner VM)
 # ---------------------------------------------------------------------------
 
-@cli.command(help="Write the caller workflow to .github/workflows/metaflow-gha.yml and commit it.")
+@gha.command(help="Write the caller workflow to .github/workflows/metaflow-gha.yml and commit it.")
 def inject():
     """
     One-time setup: write a thin caller workflow to your repo so that
@@ -187,7 +193,7 @@ def inject():
     click.echo("[gha] Commit and push this file, then you're ready to use @gha.")
 
 
-@cli.command(help="Start a GHA worker that pulls and executes tasks from the S3 queue.")
+@gha.command(help="Start a GHA worker that pulls and executes tasks from the S3 queue.")
 @click.option("--run-id", required=True, help="Metaflow run ID to process tasks for.")
 @click.option("--worker-id", default=None, help="Unique worker identifier (auto-generated if omitted).")
 @click.option("--max-idle-seconds", default=300, show_default=True,

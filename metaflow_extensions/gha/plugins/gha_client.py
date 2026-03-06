@@ -26,11 +26,15 @@ _GHA_WORKER_REPO = os.environ.get(
 _GHA_WORKER_WORKFLOW = os.environ.get(
     "METAFLOW_GHA_WORKER_WORKFLOW", "worker.yml"
 )
+_GHA_WORKER_REF = os.environ.get(
+    "METAFLOW_GHA_WORKER_REF", "main"
+)
 # Workflow file name in the USER's repo that calls the reusable worker workflow
 _GHA_CALLER_WORKFLOW = os.environ.get(
     "METAFLOW_GHA_CALLER_WORKFLOW", "metaflow-gha.yml"
 )
 _GHA_USER_REPO = os.environ.get("METAFLOW_GHA_USER_REPO", "")
+_GHA_DISPATCH_REF = os.environ.get("METAFLOW_GHA_DISPATCH_REF", "")
 
 
 class GHAClientError(Exception):
@@ -38,12 +42,21 @@ class GHAClientError(Exception):
 
 
 class GHAClient:
-    def __init__(self, user_repo: str, worker_repo: str, worker_workflow: str,
-                 caller_workflow: str = "metaflow-gha.yml"):
+    def __init__(
+        self,
+        user_repo: str,
+        worker_repo: str,
+        worker_workflow: str,
+        caller_workflow: str = "metaflow-gha.yml",
+        worker_ref: str = "main",
+        dispatch_ref: str = "",
+    ):
         self.user_repo = user_repo            # e.g. "myorg/myrepo"
         self.worker_repo = worker_repo        # e.g. "npow/metaflow-gha"
         self.worker_workflow = worker_workflow  # e.g. "worker.yml" in worker_repo
         self.caller_workflow = caller_workflow  # e.g. "metaflow-gha.yml" in user_repo
+        self.worker_ref = worker_ref
+        self.dispatch_ref = dispatch_ref
 
     @classmethod
     def from_env(cls) -> "GHAClient":
@@ -72,6 +85,8 @@ class GHAClient:
             worker_repo=_GHA_WORKER_REPO,
             worker_workflow=_GHA_WORKER_WORKFLOW,
             caller_workflow=_GHA_CALLER_WORKFLOW,
+            worker_ref=_GHA_WORKER_REF,
+            dispatch_ref=_GHA_DISPATCH_REF,
         )
 
     def ensure_workers(self, run_id: str, n_workers: int = 20, s3_client=None) -> None:
@@ -81,10 +96,12 @@ class GHAClient:
         `gha step` call in a run actually dispatches workers; subsequent calls
         (for later tasks in the same run) are no-ops.
         """
-        import boto3
         from .s3_queue_client import S3QueueClient
+        from .aws_client import make_s3_client
 
-        s3 = s3_client or boto3.client("s3")
+        self._sync_worker_env_to_repo()
+
+        s3 = s3_client or make_s3_client()
         client = S3QueueClient.from_env(s3)
 
         if not client.mark_workers_dispatched(run_id, n_workers):
@@ -97,6 +114,56 @@ class GHAClient:
                 worker_index=i,
                 s3_root=s3_root,
             )
+
+    def _sync_worker_env_to_repo(self) -> None:
+        """
+        Proxy selected local env vars into GitHub Actions configuration.
+
+        Secrets:
+          - AWS_ACCESS_KEY_ID
+          - AWS_SECRET_ACCESS_KEY
+          - AWS_SESSION_TOKEN
+        Variables:
+          - AWS_ENDPOINT_URL_S3
+          - METAFLOW_S3_ENDPOINT_URL
+        """
+        secret_keys = [
+            "AWS_ACCESS_KEY_ID",
+            "AWS_SECRET_ACCESS_KEY",
+            "AWS_SESSION_TOKEN",
+        ]
+        variable_keys = [
+            "AWS_ENDPOINT_URL_S3",
+            "METAFLOW_S3_ENDPOINT_URL",
+        ]
+
+        for key in secret_keys:
+            value = os.environ.get(key)
+            if not value:
+                continue
+            result = subprocess.run(
+                ["gh", "secret", "set", key, "--repo", self.user_repo, "--body", value],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                raise GHAClientError(
+                    f"Failed to set repo secret {key} on {self.user_repo}:\n{result.stderr}"
+                )
+
+        for key in variable_keys:
+            value = os.environ.get(key)
+            if not value:
+                continue
+            result = subprocess.run(
+                ["gh", "variable", "set", key, "--repo", self.user_repo, "--body", value],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                raise GHAClientError(
+                    f"Failed to set repo variable {key} on {self.user_repo}:\n{result.stderr}"
+                )
 
     def _dispatch_worker(self, run_id: str, worker_index: int, s3_root: str) -> None:
         """
@@ -115,6 +182,7 @@ class GHAClient:
             "run_id": run_id,
             "worker_index": str(worker_index),
             "s3_root": s3_root,
+            "worker_ref": self.worker_ref,
         }
         field_args = []
         for k, v in inputs.items():
@@ -124,6 +192,8 @@ class GHAClient:
             "gh", "workflow", "run", self.caller_workflow,
             "--repo", self.user_repo,
         ] + field_args
+        if self.dispatch_ref:
+            cmd += ["--ref", self.dispatch_ref]
 
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
@@ -149,6 +219,7 @@ class GHAClient:
         caller_yml = _CALLER_WORKFLOW_TEMPLATE.format(
             worker_repo=self.worker_repo,
             worker_workflow=self.worker_workflow,
+            worker_ref=self.worker_ref,
         )
         path = ".github/workflows/metaflow-gha.yml"
         os.makedirs(".github/workflows", exist_ok=True)
@@ -182,7 +253,7 @@ on:
 
 jobs:
   worker:
-    uses: {worker_repo}/.github/workflows/{worker_workflow}@main
+    uses: {worker_repo}/.github/workflows/{worker_workflow}@{worker_ref}
     with:
       run_id: ${{{{ inputs.run_id }}}}
       worker_index: ${{{{ inputs.worker_index }}}}
