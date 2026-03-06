@@ -91,7 +91,7 @@ jobs:
 
       - name: Run worker
         run: |
-          python -m metaflow_extensions.gha.plugins.gha_cli worker \
+          python -m metaflow_extensions.gha.plugins.gha_cli gha worker \
             --run-id "${{ inputs.run_id }}" \
             --worker-id "gha-${{ inputs.worker_index }}-${{ github.run_id }}" \
             --max-idle-seconds 300
