@@ -21,7 +21,7 @@ import boto3
 import pytest
 
 
-def _find_s3_queue_path() -> pathlib.Path:
+def _find_s3_queue_path() -> pathlib.Path | None:
     # Use importlib.metadata to find the installed file — avoids sys.modules stubs
     # that other test files inject before this module is collected.
     try:
@@ -33,14 +33,13 @@ def _find_s3_queue_path() -> pathlib.Path:
                 return pathlib.Path(str(f.locate()))
     except Exception:
         pass
-    # Fallback to local dev checkout
-    return pathlib.Path("/Users/npow/code/metaflow-coordinator/metaflow_coordinator/s3_queue.py")
+    return None
 
 
 _S3_QUEUE_PATH = _find_s3_queue_path()
 
 _HAS_REAL_S3_QUEUE = False
-if _S3_QUEUE_PATH.exists():
+if _S3_QUEUE_PATH is not None and _S3_QUEUE_PATH.exists():
     try:
         _spec = importlib.util.spec_from_file_location("_s3_queue_real", _S3_QUEUE_PATH)
         _s3q = importlib.util.module_from_spec(_spec)
