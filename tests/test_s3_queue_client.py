@@ -17,12 +17,24 @@ import sys
 import boto3
 import pytest
 
-_S3_QUEUE_PATH = pathlib.Path(
-    "/Users/npow/code/metaflow-coordinator/metaflow_coordinator/s3_queue.py"
-)
+
+def _find_s3_queue_path() -> pathlib.Path | None:
+    try:
+        import importlib.metadata
+
+        dist = importlib.metadata.distribution("metaflow-coordinator")
+        for f in dist.files or []:
+            if f.name == "s3_queue.py" and "metaflow_coordinator" in str(f):
+                return pathlib.Path(str(f.locate()))
+    except Exception:
+        pass
+    return None
+
+
+_S3_QUEUE_PATH = _find_s3_queue_path()
 
 _HAS_REAL_S3_QUEUE = False
-if _S3_QUEUE_PATH.exists():
+if _S3_QUEUE_PATH is not None and _S3_QUEUE_PATH.exists():
     try:
         _spec = importlib.util.spec_from_file_location("_s3q_for_client", _S3_QUEUE_PATH)
         _s3q = importlib.util.module_from_spec(_spec)
@@ -32,10 +44,6 @@ if _S3_QUEUE_PATH.exists():
         _HAS_REAL_S3_QUEUE = True
     except Exception:
         pass
-
-pytestmark = pytest.mark.skipif(
-    not _HAS_REAL_S3_QUEUE, reason="metaflow_coordinator.s3_queue source not available"
-)
 
 try:
     from moto import mock_aws

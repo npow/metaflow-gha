@@ -326,12 +326,15 @@ def test_bug_reclaim_stale_can_requeue_completed_task(s3):
 # ---------------------------------------------------------------------------
 
 
-def test_bug_sync_env_called_even_when_workers_already_dispatched(s3):
+def test_bug_sync_env_called_even_when_workers_already_dispatched(s3, monkeypatch):
     """
     BUG: GHAClient.ensure_workers calls _sync_worker_env_to_repo() unconditionally,
     BEFORE checking mark_workers_dispatched. Every `gha step` invocation syncs
     secrets/variables, even when workers are already running.
     """
+    # Clear GITHUB_ACTIONS so the non-GHA sync path is exercised.
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+
     import sys as _sys
     import types as _types
 
