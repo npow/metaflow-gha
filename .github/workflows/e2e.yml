@@ -12,7 +12,7 @@ permissions:
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
 
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -50,4 +50,4 @@ jobs:
         run: |
           cp show_gha_flow.py /tmp/
           cd /tmp
-          python show_gha_flow.py --datastore=s3 run --with=gha
+          python show_gha_flow.py --datastore=s3 run --with=gha:workers=4
