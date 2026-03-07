@@ -22,12 +22,16 @@ import pytest
 
 
 def _find_s3_queue_path() -> pathlib.Path:
-    # Try installed package first (works on CI after pip install metaflow-coordinator)
+    # Use importlib.metadata to find the installed file — avoids sys.modules stubs
+    # that other test files inject before this module is collected.
     try:
-        spec = importlib.util.find_spec("metaflow_coordinator.s3_queue")
-        if spec and spec.origin:
-            return pathlib.Path(spec.origin)
-    except (ModuleNotFoundError, ValueError):
+        import importlib.metadata
+
+        dist = importlib.metadata.distribution("metaflow-coordinator")
+        for f in dist.files or []:
+            if f.name == "s3_queue.py" and "metaflow_coordinator" in str(f):
+                return pathlib.Path(str(f.locate()))
+    except Exception:
         pass
     # Fallback to local dev checkout
     return pathlib.Path("/Users/npow/code/metaflow-coordinator/metaflow_coordinator/s3_queue.py")
