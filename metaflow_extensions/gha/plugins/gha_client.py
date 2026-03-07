@@ -14,11 +14,8 @@ Worker dispatch:
 """
 from __future__ import annotations
 
-import json
 import os
 import subprocess
-from typing import Any
-
 
 _GHA_WORKER_REPO = os.environ.get(
     "METAFLOW_GHA_WORKER_REPO", "npow/metaflow-gha"
@@ -96,8 +93,8 @@ class GHAClient:
         `gha step` call in a run actually dispatches workers; subsequent calls
         (for later tasks in the same run) are no-ops.
         """
-        from .s3_queue_client import S3QueueClient
         from .aws_client import make_s3_client
+        from .s3_queue_client import S3QueueClient
 
         self._sync_worker_env_to_repo()
 
@@ -219,7 +216,6 @@ class GHAClient:
         The caller workflow calls the reusable worker.yml from the metaflow-gha
         repo, so no metaflow-gha code needs to be committed to the user's repo.
         """
-        repo = target_repo or self.user_repo
         caller_yml = _CALLER_WORKFLOW_TEMPLATE.format(
             worker_repo=self.worker_repo,
             worker_workflow=self.worker_workflow,

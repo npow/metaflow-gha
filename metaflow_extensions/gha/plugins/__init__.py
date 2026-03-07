@@ -1,4 +1,8 @@
-from metaflow.extension_support.plugins import merge_lists, process_plugins, resolve_plugins
+from metaflow.extension_support.plugins import (  # noqa: F401
+    merge_lists,
+    process_plugins,
+    resolve_plugins,
+)
 
 # CLI commands provided by this extension
 CLIS_DESC = [

@@ -22,8 +22,8 @@ import tempfile
 import time
 import traceback
 
-from .s3_queue_client import S3QueueClient
 from .aws_client import make_s3_client
+from .s3_queue_client import S3QueueClient
 
 # How often (in tasks processed) to check for stale claimed tasks
 _RECLAIM_EVERY_N = 10

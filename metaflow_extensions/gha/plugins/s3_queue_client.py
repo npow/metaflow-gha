@@ -6,22 +6,21 @@ providing a convenient object-oriented interface for gha_cli and worker.py.
 """
 from __future__ import annotations
 
-import os
 from typing import Any
 
 from metaflow_coordinator.s3_queue import (
-    push_task,
-    claim_task,
-    complete_task,
-    fail_task,
-    reclaim_stale,
-    list_pending,
-    mark_workers_dispatched,
-    write_task_log,
-    read_task_log,
     _bucket_prefix_from_env,
     _done_key,
     _failed_key,
+    claim_task,
+    complete_task,
+    fail_task,
+    list_pending,
+    mark_workers_dispatched,
+    push_task,
+    read_task_log,
+    reclaim_stale,
+    write_task_log,
 )
 
 
@@ -95,7 +94,7 @@ class S3QueueClient:
                 pass
 
         # Check claimed
-        from metaflow_coordinator.s3_queue import _claimed_key, _ready_key, _waiting_key
+        from metaflow_coordinator.s3_queue import _claimed_key, _waiting_key
         for state_key_fn, state_name in [
             (_claimed_key, "claimed"),
             (_waiting_key, "waiting"),

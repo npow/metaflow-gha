@@ -1,7 +1,7 @@
 """Unit tests for gha_cli helper functions."""
-import types
 import sys
-from unittest.mock import MagicMock, patch, call
+import types
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -17,8 +17,10 @@ _mf_coord.s3_queue = _mf_coord_s3
 sys.modules.setdefault("metaflow_coordinator", _mf_coord)
 sys.modules.setdefault("metaflow_coordinator.s3_queue", _mf_coord_s3)
 
-from metaflow_extensions.gha.plugins.gha_cli import _extract_parent_task_ids, _wait_for_task
-
+from metaflow_extensions.gha.plugins.gha_cli import (  # noqa: E402
+    _extract_parent_task_ids,
+    _wait_for_task,
+)
 
 # ---------------------------------------------------------------------------
 # _extract_parent_task_ids
@@ -88,8 +90,9 @@ def test_wait_raises_on_failed():
 
 
 def test_wait_times_out():
-    from metaflow._vendor.click import ClickException
     import time as _time
+
+    from metaflow._vendor.click import ClickException
 
     # Make monotonic always exceed deadline immediately after first call
     start = _time.monotonic()

@@ -10,8 +10,6 @@ Subcommands:
 """
 from __future__ import annotations
 
-import os
-import sys
 import time
 import uuid
 
@@ -76,8 +74,8 @@ def step(
     max_retries,
 ):
     """Push a Metaflow step task to the S3 queue and block until done or failed."""
-    from .s3_queue_client import S3QueueClient
     from .aws_client import make_s3_client
+    from .s3_queue_client import S3QueueClient
 
     s3 = make_s3_client()
     client = S3QueueClient.from_env(s3)

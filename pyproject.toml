@@ -20,6 +20,9 @@ coordinator = [
 ]
 dev = [
     "pytest",
+    "pytest-cov",
+    "moto[s3]",
+    "ruff",
 ]
 
 [tool.setuptools.packages.find]
@@ -28,3 +31,17 @@ include = ["metaflow_extensions*"]
 
 [project.entry-points."metaflow.plugins"]
 gha = "metaflow_extensions.gha.plugins"
+
+[tool.pytest.ini_options]
+addopts = "--cov=metaflow_extensions --cov-report=term-missing --cov-report=xml --cov-report=html --cov-fail-under=60"
+
+[tool.coverage.run]
+omit = ["tests/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]

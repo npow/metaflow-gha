@@ -1,12 +1,11 @@
 """Unit tests for worker._build_step_command."""
 import sys
-import types
-from unittest.mock import MagicMock
-
-import pytest
 
 # Stub out metaflow_coordinator before importing worker
 import sys as _sys
+import types
+from unittest.mock import MagicMock
+
 _mf_coord = types.ModuleType("metaflow_coordinator")
 _mf_coord_s3 = types.ModuleType("metaflow_coordinator.s3_queue")
 for _name in ["push_task", "claim_task", "complete_task", "fail_task",
@@ -18,8 +17,7 @@ _mf_coord.s3_queue = _mf_coord_s3
 _sys.modules.setdefault("metaflow_coordinator", _mf_coord)
 _sys.modules.setdefault("metaflow_coordinator.s3_queue", _mf_coord_s3)
 
-from metaflow_extensions.gha.plugins.worker import _build_step_command
-
+from metaflow_extensions.gha.plugins.worker import _build_step_command  # noqa: E402
 
 BASE_TASK = {
     "flow_name": "MyFlow",
@@ -112,3 +110,60 @@ def test_max_user_code_retries():
     task = {**BASE_TASK, "max_user_code_retries": 5}
     cmd = _build_step_command(task, "/workdir")
     assert "--max-user-code-retries=5" in cmd
+
+# ---------------------------------------------------------------------------
+# _setup_environment
+# ---------------------------------------------------------------------------
+
+def test_setup_environment_no_requirements(tmp_path):
+    from metaflow_extensions.gha.plugins.worker import _setup_environment
+    _setup_environment(str(tmp_path), env_id=None)  # no error = pass
+
+
+def test_setup_environment_with_requirements(tmp_path):
+    from unittest.mock import patch
+
+    from metaflow_extensions.gha.plugins.worker import _setup_environment
+
+    req = tmp_path / "requirements.txt"
+    req.write_text("requests\n")
+
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0)
+        _setup_environment(str(tmp_path), env_id="abc123")
+
+    assert mock_run.called
+    call_args = mock_run.call_args[0][0]
+    assert "-r" in call_args
+    assert str(req) in call_args
+
+
+# ---------------------------------------------------------------------------
+# worker idle exit
+# ---------------------------------------------------------------------------
+
+def test_worker_exits_after_idle_timeout():
+    import time
+    from unittest.mock import MagicMock, patch
+
+    mock_client = MagicMock()
+    mock_s3 = MagicMock()
+    mock_client.claim_task.return_value = None  # always empty
+
+    with patch("metaflow_extensions.gha.plugins.worker.make_s3_client", return_value=mock_s3):
+        with patch("metaflow_extensions.gha.plugins.worker.S3QueueClient") as mock_cls:
+            with patch("time.sleep"):
+                mock_cls.from_env.return_value = mock_client
+                from metaflow_extensions.gha.plugins.worker import run_worker
+
+                t0 = time.monotonic()
+                call_n = 0
+
+                def fake_monotonic():
+                    nonlocal call_n
+                    call_n += 1
+                    return t0 if call_n <= 2 else t0 + 9999
+
+                with patch("time.monotonic", side_effect=fake_monotonic):
+                    run_worker(run_id="run1", worker_id="w1", max_idle_seconds=1)
+    # Should exit cleanly without raising
