@@ -64,7 +64,7 @@ jobs:
 
     steps:
       - name: Checkout metaflow-gha (for worker code)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: npow/metaflow-gha
           ref: ${{ inputs.worker_ref }}
