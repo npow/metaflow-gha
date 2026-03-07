@@ -2,36 +2,7 @@
 
 import sys
 
-# Stub out metaflow_coordinator before importing worker
-import sys as _sys
-import types
-from unittest.mock import MagicMock
-
-_mf_coord = types.ModuleType("metaflow_coordinator")
-_mf_coord_s3 = types.ModuleType("metaflow_coordinator.s3_queue")
-for _name in [
-    "push_task",
-    "claim_task",
-    "complete_task",
-    "fail_task",
-    "reclaim_stale",
-    "list_pending",
-    "mark_workers_dispatched",
-    "write_task_log",
-    "read_task_log",
-    "_bucket_prefix_from_env",
-    "_done_key",
-    "_failed_key",
-    "_claimed_key",
-    "_ready_key",
-    "_waiting_key",
-]:
-    setattr(_mf_coord_s3, _name, MagicMock())
-_mf_coord.s3_queue = _mf_coord_s3
-_sys.modules.setdefault("metaflow_coordinator", _mf_coord)
-_sys.modules.setdefault("metaflow_coordinator.s3_queue", _mf_coord_s3)
-
-from metaflow_extensions.gha.plugins.worker import _build_step_command  # noqa: E402
+from metaflow_extensions.gha.plugins.worker import _build_step_command
 
 BASE_TASK = {
     "flow_name": "MyFlow",
@@ -138,7 +109,7 @@ def test_setup_environment_no_requirements(tmp_path):
 
 
 def test_setup_environment_with_requirements(tmp_path):
-    from unittest.mock import patch
+    from unittest.mock import MagicMock, patch
 
     from metaflow_extensions.gha.plugins.worker import _setup_environment
 

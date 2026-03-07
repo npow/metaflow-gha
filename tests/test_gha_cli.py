@@ -1,37 +1,10 @@
 """Unit tests for gha_cli helper functions."""
 
-import sys
-import types
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-# Stub metaflow_coordinator before any import
-_mf_coord = types.ModuleType("metaflow_coordinator")
-_mf_coord_s3 = types.ModuleType("metaflow_coordinator.s3_queue")
-for _name in [
-    "push_task",
-    "claim_task",
-    "complete_task",
-    "fail_task",
-    "reclaim_stale",
-    "list_pending",
-    "mark_workers_dispatched",
-    "write_task_log",
-    "read_task_log",
-    "_bucket_prefix_from_env",
-    "_done_key",
-    "_failed_key",
-    "_claimed_key",
-    "_ready_key",
-    "_waiting_key",
-]:
-    setattr(_mf_coord_s3, _name, MagicMock())
-_mf_coord.s3_queue = _mf_coord_s3
-sys.modules.setdefault("metaflow_coordinator", _mf_coord)
-sys.modules.setdefault("metaflow_coordinator.s3_queue", _mf_coord_s3)
-
-from metaflow_extensions.gha.plugins.gha_cli import (  # noqa: E402
+from metaflow_extensions.gha.plugins.gha_cli import (
     _extract_parent_task_ids,
     _wait_for_task,
 )

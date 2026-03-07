@@ -5,72 +5,15 @@ Verifies the thin delegation layer works end-to-end.
 
 from __future__ import annotations
 
-# ---------------------------------------------------------------------------
-# Ensure real metaflow_coordinator.s3_queue is loaded (not the stub)
-# See test_s3_queue.py for the bootstrap pattern.
-# ---------------------------------------------------------------------------
-import importlib.util
 import json
-import pathlib
-import sys
 
-import boto3
 import pytest
 
-
-def _find_s3_queue_path() -> pathlib.Path | None:
-    try:
-        import importlib.metadata
-
-        dist = importlib.metadata.distribution("metaflow-coordinator")
-        for f in dist.files or []:
-            if f.name == "s3_queue.py" and "metaflow_coordinator" in str(f):
-                return pathlib.Path(str(f.locate()))
-    except Exception:
-        pass
-    return None
-
-
-_S3_QUEUE_PATH = _find_s3_queue_path()
-
-_HAS_REAL_S3_QUEUE = False
-if _S3_QUEUE_PATH is not None and _S3_QUEUE_PATH.exists():
-    try:
-        _spec = importlib.util.spec_from_file_location("_s3q_for_client", _S3_QUEUE_PATH)
-        _s3q = importlib.util.module_from_spec(_spec)
-        _spec.loader.exec_module(_s3q)
-        # Inject as the module that s3_queue_client imports from
-        sys.modules["metaflow_coordinator.s3_queue"] = _s3q
-        _HAS_REAL_S3_QUEUE = True
-    except Exception:
-        pass
-
-try:
-    from moto import mock_aws
-
-    _HAS_MOTO = True
-except ImportError:
-    _HAS_MOTO = False
-
-pytestmark = [
-    pytest.mark.skipif(not _HAS_REAL_S3_QUEUE, reason="s3_queue source not available"),
-    pytest.mark.skipif(not _HAS_MOTO, reason="moto not installed"),
-]
-
-# Import after patching sys.modules
-from metaflow_extensions.gha.plugins.s3_queue_client import S3QueueClient  # noqa: E402
+from metaflow_extensions.gha.plugins.s3_queue_client import S3QueueClient
 
 BUCKET = "test-bucket"
 PREFIX = "mf"
 RUN_ID = "999"
-
-
-@pytest.fixture
-def s3():
-    with mock_aws():
-        client = boto3.client("s3", region_name="us-east-1")
-        client.create_bucket(Bucket=BUCKET)
-        yield client
 
 
 @pytest.fixture

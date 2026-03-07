@@ -91,16 +91,17 @@ class GHAClient:
         from .aws_client import make_s3_client
         from .s3_queue_client import S3QueueClient
 
-        # Skip secret/variable sync when already running inside GitHub Actions —
-        # the repo secrets are already configured and GITHUB_TOKEN lacks secrets:write.
-        if not os.environ.get("GITHUB_ACTIONS"):
-            self._sync_worker_env_to_repo()
-
         s3 = s3_client or make_s3_client()
         client = S3QueueClient.from_env(s3)
 
         if not client.mark_workers_dispatched(run_id, n_workers):
             return  # already dispatched by an earlier task in this run
+
+        # Sync secrets/vars to the repo on first dispatch only.
+        # Skipped inside GitHub Actions — secrets are already configured and
+        # GITHUB_TOKEN lacks secrets:write permission.
+        if not os.environ.get("GITHUB_ACTIONS"):
+            self._sync_worker_env_to_repo()
 
         s3_root = os.environ.get("METAFLOW_DATASTORE_SYSROOT_S3", "")
         for i in range(n_workers):

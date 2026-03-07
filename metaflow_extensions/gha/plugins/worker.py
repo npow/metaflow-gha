@@ -28,8 +28,10 @@ from .s3_queue_client import S3QueueClient
 
 # How often (in tasks processed) to check for stale claimed tasks
 _RECLAIM_EVERY_N = 10
-# How long a task must be claimed before it's considered stale
-_STALE_AFTER = 3600  # 1 hour
+# How long a task must be claimed before it's considered stale.
+# Workers exit after 300s of idleness, so anything claimed longer than that
+# is from a crashed worker and should be reclaimed promptly.
+_STALE_AFTER = 600  # 10 minutes
 # How often to flush accumulated log lines to S3 (seconds)
 _LOG_FLUSH_INTERVAL = 5.0
 # Local cache dir for downloaded code packages (persists across tasks in same job)
@@ -188,7 +190,12 @@ def _fetch_code_package(package_url: str, package_sha: str, workdir: str) -> Non
             raise
 
     with tarfile.open(cached_path, "r:gz") as tar:
-        tar.extractall(workdir)
+        # filter="data" blocks path traversal attacks (CVE-2007-4559 / PEP 706).
+        # Added in Python 3.12; use version guard for 3.10/3.11 compat.
+        if sys.version_info >= (3, 12):
+            tar.extractall(workdir, filter="data")
+        else:
+            tar.extractall(workdir)
 
 
 def _setup_environment(workdir: str, env_id: str | None) -> None:

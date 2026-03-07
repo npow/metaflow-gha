@@ -7,91 +7,34 @@ Covers happy paths, race conditions, retry bugs, and edge cases.
 
 from __future__ import annotations
 
-# ---------------------------------------------------------------------------
-# Bootstrap: load the real s3_queue module directly from source, bypassing
-# sys.modules stubs installed by other test files.
-# ---------------------------------------------------------------------------
-import importlib.util
 import json
-import pathlib
 import time
 from unittest.mock import MagicMock, patch
 
-import boto3
 import pytest
 
-
-def _find_s3_queue_path() -> pathlib.Path | None:
-    # Use importlib.metadata to find the installed file — avoids sys.modules stubs
-    # that other test files inject before this module is collected.
-    try:
-        import importlib.metadata
-
-        dist = importlib.metadata.distribution("metaflow-coordinator")
-        for f in dist.files or []:
-            if f.name == "s3_queue.py" and "metaflow_coordinator" in str(f):
-                return pathlib.Path(str(f.locate()))
-    except Exception:
-        pass
-    return None
-
-
-_S3_QUEUE_PATH = _find_s3_queue_path()
-
-_HAS_REAL_S3_QUEUE = False
-if _S3_QUEUE_PATH is not None and _S3_QUEUE_PATH.exists():
-    try:
-        _spec = importlib.util.spec_from_file_location("_s3_queue_real", _S3_QUEUE_PATH)
-        _s3q = importlib.util.module_from_spec(_spec)
-        _spec.loader.exec_module(_s3q)
-
-        _bucket_prefix_from_env = _s3q._bucket_prefix_from_env
-        _done_key = _s3q._done_key
-        _failed_key = _s3q._failed_key
-        _ready_key = _s3q._ready_key
-        _s3_root = _s3q._s3_root
-        _task_key = _s3q._task_key
-        _waiting_key = _s3q._waiting_key
-        claim_task = _s3q.claim_task
-        complete_task = _s3q.complete_task
-        fail_task = _s3q.fail_task
-        list_pending = _s3q.list_pending
-        mark_workers_dispatched = _s3q.mark_workers_dispatched
-        push_task = _s3q.push_task
-        read_task_log = _s3q.read_task_log
-        reclaim_stale = _s3q.reclaim_stale
-        write_task_log = _s3q.write_task_log
-        _HAS_REAL_S3_QUEUE = True
-    except Exception:
-        pass
-
-# ---------------------------------------------------------------------------
-# Moto S3 fixture
-# ---------------------------------------------------------------------------
-
-try:
-    from moto import mock_aws
-
-    _HAS_MOTO = True
-except ImportError:
-    _HAS_MOTO = False
-
-pytestmark = [
-    pytest.mark.skipif(not _HAS_REAL_S3_QUEUE, reason="s3_queue source not available"),
-    pytest.mark.skipif(not _HAS_MOTO, reason="moto not installed"),
-]
+from metaflow_coordinator.s3_queue import (
+    _bucket_prefix_from_env,
+    _done_key,  # noqa: F401
+    _failed_key,  # noqa: F401
+    _ready_key,  # noqa: F401
+    _s3_root,
+    _task_key,  # noqa: F401
+    _waiting_key,  # noqa: F401
+    claim_task,
+    complete_task,
+    fail_task,
+    list_pending,
+    mark_workers_dispatched,
+    push_task,
+    read_task_log,
+    reclaim_stale,
+    write_task_log,
+)
 
 BUCKET = "test-bucket"
 PREFIX = "metaflow"
 RUN_ID = "1234"
-
-
-@pytest.fixture
-def s3():
-    with mock_aws():
-        client = boto3.client("s3", region_name="us-east-1")
-        client.create_bucket(Bucket=BUCKET)
-        yield client
 
 
 def _push(s3, task_id, step="start", parent_ids=None, attempt=0, max_retries=2):
@@ -334,31 +277,6 @@ def test_bug_sync_env_called_even_when_workers_already_dispatched(s3, monkeypatc
     """
     # Clear GITHUB_ACTIONS so the non-GHA sync path is exercised.
     monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
-
-    import sys as _sys
-    import types as _types
-
-    # Stub gha_client imports
-    _stub_coord = _types.ModuleType("metaflow_coordinator")
-    _stub_s3 = _types.ModuleType("metaflow_coordinator.s3_queue")
-    for n in [
-        "push_task",
-        "claim_task",
-        "complete_task",
-        "fail_task",
-        "reclaim_stale",
-        "list_pending",
-        "mark_workers_dispatched",
-        "write_task_log",
-        "read_task_log",
-        "_bucket_prefix_from_env",
-        "_done_key",
-        "_failed_key",
-    ]:
-        setattr(_stub_s3, n, MagicMock())
-    _stub_coord.s3_queue = _stub_s3
-    _sys.modules.setdefault("metaflow_coordinator", _stub_coord)
-    _sys.modules.setdefault("metaflow_coordinator.s3_queue", _stub_s3)
 
     from metaflow_extensions.gha.plugins.gha_client import GHAClient
 
