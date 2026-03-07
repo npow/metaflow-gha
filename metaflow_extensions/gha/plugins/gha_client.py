@@ -12,24 +12,17 @@ Worker dispatch:
   - The caller workflow (injected into the user's repo) just calls the
     reusable workflow with the run_id and S3 config as inputs.
 """
+
 from __future__ import annotations
 
 import os
 import subprocess
 
-_GHA_WORKER_REPO = os.environ.get(
-    "METAFLOW_GHA_WORKER_REPO", "npow/metaflow-gha"
-)
-_GHA_WORKER_WORKFLOW = os.environ.get(
-    "METAFLOW_GHA_WORKER_WORKFLOW", "worker.yml"
-)
-_GHA_WORKER_REF = os.environ.get(
-    "METAFLOW_GHA_WORKER_REF", "main"
-)
+_GHA_WORKER_REPO = os.environ.get("METAFLOW_GHA_WORKER_REPO", "npow/metaflow-gha")
+_GHA_WORKER_WORKFLOW = os.environ.get("METAFLOW_GHA_WORKER_WORKFLOW", "worker.yml")
+_GHA_WORKER_REF = os.environ.get("METAFLOW_GHA_WORKER_REF", "main")
 # Workflow file name in the USER's repo that calls the reusable worker workflow
-_GHA_CALLER_WORKFLOW = os.environ.get(
-    "METAFLOW_GHA_CALLER_WORKFLOW", "metaflow-gha.yml"
-)
+_GHA_CALLER_WORKFLOW = os.environ.get("METAFLOW_GHA_CALLER_WORKFLOW", "metaflow-gha.yml")
 _GHA_USER_REPO = os.environ.get("METAFLOW_GHA_USER_REPO", "")
 _GHA_DISPATCH_REF = os.environ.get("METAFLOW_GHA_DISPATCH_REF", "")
 
@@ -48,8 +41,8 @@ class GHAClient:
         worker_ref: str = "main",
         dispatch_ref: str = "",
     ):
-        self.user_repo = user_repo            # e.g. "myorg/myrepo"
-        self.worker_repo = worker_repo        # e.g. "npow/metaflow-gha"
+        self.user_repo = user_repo  # e.g. "myorg/myrepo"
+        self.worker_repo = worker_repo  # e.g. "npow/metaflow-gha"
         self.worker_workflow = worker_workflow  # e.g. "worker.yml" in worker_repo
         self.caller_workflow = caller_workflow  # e.g. "metaflow-gha.yml" in user_repo
         self.worker_ref = worker_ref
@@ -63,7 +56,9 @@ class GHAClient:
             try:
                 result = subprocess.run(
                     ["git", "remote", "get-url", "origin"],
-                    capture_output=True, text=True, check=True,
+                    capture_output=True,
+                    text=True,
+                    check=True,
                 )
                 url = result.stdout.strip()
                 # Parse github.com/{owner}/{repo} or git@github.com:{owner}/{repo}
@@ -190,8 +185,12 @@ class GHAClient:
             field_args += ["-f", f"{k}={v}"]
 
         cmd = [
-            "gh", "workflow", "run", self.caller_workflow,
-            "--repo", self.user_repo,
+            "gh",
+            "workflow",
+            "run",
+            self.caller_workflow,
+            "--repo",
+            self.user_repo,
         ] + field_args
         if self.dispatch_ref:
             cmd += ["--ref", self.dispatch_ref]

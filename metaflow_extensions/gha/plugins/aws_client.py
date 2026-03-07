@@ -11,9 +11,8 @@ def make_s3_client():
 
     This supports backends like Cloudflare R2 where endpoint_url is required.
     """
-    endpoint_url = (
-        os.environ.get("AWS_ENDPOINT_URL_S3")
-        or os.environ.get("METAFLOW_S3_ENDPOINT_URL")
+    endpoint_url = os.environ.get("AWS_ENDPOINT_URL_S3") or os.environ.get(
+        "METAFLOW_S3_ENDPOINT_URL"
     )
     if endpoint_url:
         return boto3.client("s3", endpoint_url=endpoint_url)

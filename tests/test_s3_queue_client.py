@@ -2,6 +2,7 @@
 Tests for S3QueueClient wrapper using moto.
 Verifies the thin delegation layer works end-to-end.
 """
+
 from __future__ import annotations
 
 # ---------------------------------------------------------------------------
@@ -38,6 +39,7 @@ pytestmark = pytest.mark.skipif(
 
 try:
     from moto import mock_aws
+
     _HAS_MOTO = True
 except ImportError:
     _HAS_MOTO = False
@@ -93,6 +95,7 @@ def _make_task(task_id, step="start"):
 # push_task / claim_task
 # ---------------------------------------------------------------------------
 
+
 def test_push_and_claim(queue):
     task = _make_task("t1")
     queue.push_task(RUN_ID, task)
@@ -115,6 +118,7 @@ def test_claim_with_preferred_step(queue):
 # ---------------------------------------------------------------------------
 # complete_task / fail_task
 # ---------------------------------------------------------------------------
+
 
 def test_complete_task(queue):
     queue.push_task(RUN_ID, _make_task("t1"))
@@ -145,6 +149,7 @@ def test_fail_task_no_retries(queue):
 # reclaim_stale
 # ---------------------------------------------------------------------------
 
+
 def test_reclaim_stale(queue, s3):
     import time
 
@@ -152,6 +157,7 @@ def test_reclaim_stale(queue, s3):
     queue.claim_task(RUN_ID, "w1")
     # Manually make the claim look stale
     from metaflow_coordinator.s3_queue import _s3_root
+
     claimed_key = f"{_s3_root(BUCKET, PREFIX, RUN_ID)}/claimed/t1"
     s3.put_object(
         Bucket=BUCKET,
@@ -167,6 +173,7 @@ def test_reclaim_stale(queue, s3):
 # mark_workers_dispatched
 # ---------------------------------------------------------------------------
 
+
 def test_mark_workers_dispatched(queue):
     assert queue.mark_workers_dispatched(RUN_ID, 5) is True
     assert queue.mark_workers_dispatched(RUN_ID, 5) is False
@@ -175,6 +182,7 @@ def test_mark_workers_dispatched(queue):
 # ---------------------------------------------------------------------------
 # write / read log
 # ---------------------------------------------------------------------------
+
 
 def test_write_read_log(queue):
     queue.write_task_log(RUN_ID, "t1", "line1\nline2")
@@ -189,6 +197,7 @@ def test_read_missing_log(queue):
 # from_env
 # ---------------------------------------------------------------------------
 
+
 def test_from_env(monkeypatch, s3):
     monkeypatch.setenv("METAFLOW_DATASTORE_SYSROOT_S3", f"s3://{BUCKET}/{PREFIX}")
     client = S3QueueClient.from_env(s3)
@@ -199,6 +208,7 @@ def test_from_env(monkeypatch, s3):
 # ---------------------------------------------------------------------------
 # get_task_state
 # ---------------------------------------------------------------------------
+
 
 def test_get_task_state_done(queue):
     queue.push_task(RUN_ID, _make_task("t1"))

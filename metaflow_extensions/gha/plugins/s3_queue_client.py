@@ -4,6 +4,7 @@ s3_queue_client.py
 Thin wrapper around the s3_queue module from metaflow-coordinator,
 providing a convenient object-oriented interface for gha_cli and worker.py.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -41,9 +42,7 @@ class S3QueueClient:
     def claim_task(
         self, run_id: str, worker_id: str, preferred_step: str | None = None
     ) -> dict | None:
-        return claim_task(
-            self.s3, self.bucket, self.prefix, run_id, worker_id, preferred_step
-        )
+        return claim_task(self.s3, self.bucket, self.prefix, run_id, worker_id, preferred_step)
 
     def complete_task(self, run_id: str, task_id: str) -> None:
         complete_task(self.s3, self.bucket, self.prefix, run_id, task_id)
@@ -56,15 +55,10 @@ class S3QueueClient:
         attempt: int,
         max_retries: int,
     ) -> None:
-        fail_task(
-            self.s3, self.bucket, self.prefix, run_id, task_id,
-            error, attempt, max_retries
-        )
+        fail_task(self.s3, self.bucket, self.prefix, run_id, task_id, error, attempt, max_retries)
 
     def reclaim_stale(self, run_id: str, stale_after_seconds: int = 3600) -> int:
-        return reclaim_stale(
-            self.s3, self.bucket, self.prefix, run_id, stale_after_seconds
-        )
+        return reclaim_stale(self.s3, self.bucket, self.prefix, run_id, stale_after_seconds)
 
     def list_pending(self, run_id: str) -> dict[str, list[str]]:
         return list_pending(self.s3, self.bucket, self.prefix, run_id)
@@ -95,6 +89,7 @@ class S3QueueClient:
 
         # Check claimed
         from metaflow_coordinator.s3_queue import _claimed_key, _waiting_key
+
         for state_key_fn, state_name in [
             (_claimed_key, "claimed"),
             (_waiting_key, "waiting"),

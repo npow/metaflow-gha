@@ -4,6 +4,7 @@ Adversarial and integration tests for s3_queue + S3QueueClient.
 Uses moto to mock S3 so tests run offline without real AWS creds.
 Covers happy paths, race conditions, retry bugs, and edge cases.
 """
+
 from __future__ import annotations
 
 # ---------------------------------------------------------------------------
@@ -19,7 +20,9 @@ from unittest.mock import MagicMock, patch
 import boto3
 import pytest
 
-_S3_QUEUE_PATH = pathlib.Path("/Users/npow/code/metaflow-coordinator/metaflow_coordinator/s3_queue.py")
+_S3_QUEUE_PATH = pathlib.Path(
+    "/Users/npow/code/metaflow-coordinator/metaflow_coordinator/s3_queue.py"
+)
 
 _HAS_REAL_S3_QUEUE = False
 if _S3_QUEUE_PATH.exists():
@@ -54,6 +57,7 @@ if _S3_QUEUE_PATH.exists():
 
 try:
     from moto import mock_aws
+
     _HAS_MOTO = True
 except ImportError:
     _HAS_MOTO = False
@@ -103,6 +107,7 @@ def _push(s3, task_id, step="start", parent_ids=None, attempt=0, max_retries=2):
 # Happy path
 # ---------------------------------------------------------------------------
 
+
 def test_push_and_claim(s3):
     _push(s3, "t1")
     task = claim_task(s3, BUCKET, PREFIX, RUN_ID, "worker-1")
@@ -145,6 +150,7 @@ def test_preferred_step_claimed_first(s3):
 # ---------------------------------------------------------------------------
 # Dependency / waiting
 # ---------------------------------------------------------------------------
+
 
 def test_task_with_pending_parent_goes_to_waiting(s3):
     _push(s3, "parent")
@@ -196,6 +202,7 @@ def test_multi_parent_unblocks_only_when_all_done(s3):
 # Retry behaviour
 # ---------------------------------------------------------------------------
 
+
 def test_fail_with_retries_remaining_requeues(s3):
     _push(s3, "t1", max_retries=2)
     claim_task(s3, BUCKET, PREFIX, RUN_ID, "w1")
@@ -233,6 +240,7 @@ def test_fail_exhausted_retries_marks_failed(s3):
 # ADVERSARIAL: Retry task_id change breaks orchestrator polling (BUG)
 # ---------------------------------------------------------------------------
 
+
 def test_bug_retry_original_task_id_never_reaches_done_or_failed(s3):
     """
     BUG: fail_task creates a new task_id (e.g. t1-retry1) for the retry.
@@ -258,6 +266,7 @@ def test_bug_retry_original_task_id_never_reaches_done_or_failed(s3):
 # ---------------------------------------------------------------------------
 # ADVERSARIAL: reclaim_stale race with complete_task (BUG)
 # ---------------------------------------------------------------------------
+
 
 def test_bug_reclaim_stale_can_requeue_completed_task(s3):
     """
@@ -302,6 +311,7 @@ def test_bug_reclaim_stale_can_requeue_completed_task(s3):
 # ADVERSARIAL: _sync_worker_env_to_repo called before dispatch check (BUG)
 # ---------------------------------------------------------------------------
 
+
 def test_bug_sync_env_called_even_when_workers_already_dispatched(s3):
     """
     BUG: GHAClient.ensure_workers calls _sync_worker_env_to_repo() unconditionally,
@@ -314,10 +324,20 @@ def test_bug_sync_env_called_even_when_workers_already_dispatched(s3):
     # Stub gha_client imports
     _stub_coord = _types.ModuleType("metaflow_coordinator")
     _stub_s3 = _types.ModuleType("metaflow_coordinator.s3_queue")
-    for n in ["push_task", "claim_task", "complete_task", "fail_task",
-              "reclaim_stale", "list_pending", "mark_workers_dispatched",
-              "write_task_log", "read_task_log", "_bucket_prefix_from_env",
-              "_done_key", "_failed_key"]:
+    for n in [
+        "push_task",
+        "claim_task",
+        "complete_task",
+        "fail_task",
+        "reclaim_stale",
+        "list_pending",
+        "mark_workers_dispatched",
+        "write_task_log",
+        "read_task_log",
+        "_bucket_prefix_from_env",
+        "_done_key",
+        "_failed_key",
+    ]:
         setattr(_stub_s3, n, MagicMock())
     _stub_coord.s3_queue = _stub_s3
     _sys.modules.setdefault("metaflow_coordinator", _stub_coord)
@@ -338,8 +358,13 @@ def test_bug_sync_env_called_even_when_workers_already_dispatched(s3):
 
     with patch.object(client, "_sync_worker_env_to_repo", side_effect=lambda: sync_calls.append(1)):
         with patch.object(client, "_dispatch_worker"):
-            with patch("metaflow_extensions.gha.plugins.aws_client.make_s3_client", return_value=MagicMock()):
-                with patch("metaflow_extensions.gha.plugins.s3_queue_client.S3QueueClient") as mock_q_cls:
+            with patch(
+                "metaflow_extensions.gha.plugins.aws_client.make_s3_client",
+                return_value=MagicMock(),
+            ):
+                with patch(
+                    "metaflow_extensions.gha.plugins.s3_queue_client.S3QueueClient"
+                ) as mock_q_cls:
                     mock_q_cls.from_env.return_value = mock_q_inst
 
                     # First call: workers not yet dispatched
@@ -363,6 +388,7 @@ def test_bug_sync_env_called_even_when_workers_already_dispatched(s3):
 # mark_workers_dispatched idempotency
 # ---------------------------------------------------------------------------
 
+
 def test_mark_workers_dispatched_idempotent(s3):
     first = mark_workers_dispatched(s3, BUCKET, PREFIX, RUN_ID, 5)
     second = mark_workers_dispatched(s3, BUCKET, PREFIX, RUN_ID, 5)
@@ -373,6 +399,7 @@ def test_mark_workers_dispatched_idempotent(s3):
 # ---------------------------------------------------------------------------
 # Log write / read
 # ---------------------------------------------------------------------------
+
 
 def test_write_and_read_log(s3):
     write_task_log(s3, BUCKET, PREFIX, RUN_ID, "t1", "hello\nworld")
@@ -395,6 +422,7 @@ def test_log_overwrite(s3):
 # list_pending
 # ---------------------------------------------------------------------------
 
+
 def test_list_pending_full_lifecycle(s3):
     _push(s3, "t1")
     _push(s3, "t2", parent_ids=["t1"])
@@ -415,6 +443,7 @@ def test_list_pending_full_lifecycle(s3):
 # ---------------------------------------------------------------------------
 # reclaim_stale
 # ---------------------------------------------------------------------------
+
 
 def test_reclaim_stale_returns_old_tasks_to_ready(s3):
     _push(s3, "t1")
@@ -445,6 +474,7 @@ def test_reclaim_stale_ignores_recent_tasks(s3):
 # ---------------------------------------------------------------------------
 # S3 path helpers
 # ---------------------------------------------------------------------------
+
 
 def test_s3_root_no_prefix():
     root = _s3_root(BUCKET, "", RUN_ID)
@@ -478,6 +508,7 @@ def test_bucket_prefix_from_env_no_prefix(monkeypatch):
 # ---------------------------------------------------------------------------
 # Adversarial: malformed / edge-case inputs
 # ---------------------------------------------------------------------------
+
 
 def test_claim_task_step_name_with_slashes(s3):
     """Step names don't normally have slashes, but ensure the key parsing is robust."""

@@ -8,6 +8,7 @@ Subcommands:
                pushes this task to the S3 queue and waits for completion.
   gha worker — called inside the GHA runner VM; pulls and executes tasks.
 """
+
 from __future__ import annotations
 
 import time
@@ -31,6 +32,7 @@ def gha():
 # ---------------------------------------------------------------------------
 # `gha step`  (runs on the user's machine / Metaflow orchestrator)
 # ---------------------------------------------------------------------------
+
 
 @gha.command(help="Submit a step task to the GHA S3 queue and wait for completion.")
 @click.argument("step_name")
@@ -113,6 +115,7 @@ def step(
 
     # Ensure workers are running — idempotent via S3 sentinel
     from .gha_client import GHAClient
+
     gha = GHAClient.from_env()
     gha.ensure_workers(run_id=run_id, n_workers=workers, s3_client=s3)
 
@@ -143,8 +146,8 @@ def _extract_parent_task_ids(input_paths: str | None) -> list[str]:
     return parent_task_ids
 
 
-_RECLAIM_INTERVAL = 60.0   # seconds between reclaim_stale calls
-_LOG_POLL_INTERVAL = 5.0   # seconds between log/state polls
+_RECLAIM_INTERVAL = 60.0  # seconds between reclaim_stale calls
+_LOG_POLL_INTERVAL = 5.0  # seconds between log/state polls
 
 
 def _wait_for_task(client, run_id: str, task_id: str, timeout: int) -> None:
@@ -194,6 +197,7 @@ def _wait_for_task(client, run_id: str, task_id: str, timeout: int) -> None:
 # `gha worker`  (runs inside the GHA runner VM)
 # ---------------------------------------------------------------------------
 
+
 @gha.command(help="Write the caller workflow to .github/workflows/metaflow-gha.yml and commit it.")
 def inject():
     """
@@ -208,6 +212,7 @@ def inject():
         git push
     """
     from .gha_client import GHAClient
+
     gha = GHAClient.from_env()
     path = gha.inject_caller_workflow()
     click.echo(f"[gha] Wrote caller workflow to {path}")
@@ -216,9 +221,15 @@ def inject():
 
 @gha.command(help="Start a GHA worker that pulls and executes tasks from the S3 queue.")
 @click.option("--run-id", required=True, help="Metaflow run ID to process tasks for.")
-@click.option("--worker-id", default=None, help="Unique worker identifier (auto-generated if omitted).")
-@click.option("--max-idle-seconds", default=300, show_default=True,
-              help="Seconds to wait for new tasks before exiting.")
+@click.option(
+    "--worker-id", default=None, help="Unique worker identifier (auto-generated if omitted)."
+)
+@click.option(
+    "--max-idle-seconds",
+    default=300,
+    show_default=True,
+    help="Seconds to wait for new tasks before exiting.",
+)
 def worker(run_id, worker_id, max_idle_seconds):
     """Pull tasks from the S3 queue and execute them until idle or run completes."""
     from .worker import run_worker

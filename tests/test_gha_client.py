@@ -1,4 +1,5 @@
 """Unit tests for GHAClient."""
+
 import os
 import tempfile
 
@@ -22,6 +23,7 @@ def make_client(**kwargs):
 # ---------------------------------------------------------------------------
 # inject_caller_workflow
 # ---------------------------------------------------------------------------
+
 
 def test_inject_creates_file():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -92,8 +94,10 @@ def test_inject_workflow_idempotent():
 # from_env
 # ---------------------------------------------------------------------------
 
+
 def test_from_env_uses_env_var(monkeypatch):
     import metaflow_extensions.gha.plugins.gha_client as _mod
+
     monkeypatch.setattr(_mod, "_GHA_USER_REPO", "envorg/envrepo")
     monkeypatch.setattr(_mod, "_GHA_WORKER_REPO", "npow/metaflow-gha")
     monkeypatch.setattr(_mod, "_GHA_WORKER_WORKFLOW", "worker.yml")

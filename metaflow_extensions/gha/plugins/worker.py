@@ -13,6 +13,7 @@ Lifecycle:
   7. Periodically reclaim stale claimed tasks.
   8. Exit after max_idle_seconds with no work.
 """
+
 from __future__ import annotations
 
 import os
@@ -150,9 +151,7 @@ def _execute_task(task: dict, worker_id: str, client: "S3QueueClient", run_id: s
         proc.wait()
 
         if proc.returncode != 0:
-            raise RuntimeError(
-                f"Metaflow step exited with code {proc.returncode}"
-            )
+            raise RuntimeError(f"Metaflow step exited with code {proc.returncode}")
 
 
 def _fetch_code_package(package_url: str, package_sha: str, workdir: str) -> None:
@@ -173,7 +172,7 @@ def _fetch_code_package(package_url: str, package_sha: str, workdir: str) -> Non
 
     if not os.path.exists(cached_path):
         s3 = make_s3_client()
-        url = package_url[len("s3://"):]
+        url = package_url[len("s3://") :]
         bucket, _, key = url.partition("/")
         # Download to a temp path first, then rename atomically to avoid
         # partial files being read by concurrent tasks

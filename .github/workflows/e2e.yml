@@ -1,0 +1,52 @@
+name: E2E
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  actions: write   # needed for gh workflow run to dispatch worker jobs
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_ENDPOINT_URL_S3: ${{ vars.AWS_ENDPOINT_URL_S3 }}
+      AWS_DEFAULT_REGION: auto
+      METAFLOW_S3_ENDPOINT_URL: ${{ vars.METAFLOW_S3_ENDPOINT_URL }}
+      METAFLOW_DATASTORE_SYSROOT_S3: ${{ vars.METAFLOW_DATASTORE_SYSROOT_S3 }}
+      METAFLOW_DEFAULT_DATASTORE: s3
+      METAFLOW_SERVICE_URL: ${{ vars.METAFLOW_SERVICE_URL }}
+      METAFLOW_SERVICE_AUTH_KEY: ${{ secrets.METAFLOW_SERVICE_AUTH_KEY }}
+      METAFLOW_DEFAULT_METADATA: ${{ vars.METAFLOW_DEFAULT_METADATA }}
+      # Point workers at the exact commit being tested
+      METAFLOW_GHA_USER_REPO: npow/metaflow-gha
+      METAFLOW_GHA_WORKER_REF: ${{ github.sha }}
+      METAFLOW_GHA_DISPATCH_REF: main
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -q metaflow boto3 metaflow-coordinator
+          pip install -q -e .
+
+      - name: Run E2E flow on GHA
+        # Run from /tmp so show_gha_flow.py's code package doesn't include
+        # metaflow_extensions/ (which would conflict with the installed package
+        # on the worker).
+        run: |
+          cp show_gha_flow.py /tmp/
+          cd /tmp
+          python show_gha_flow.py --datastore=s3 run --with=gha

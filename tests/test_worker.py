@@ -1,4 +1,5 @@
 """Unit tests for worker._build_step_command."""
+
 import sys
 
 # Stub out metaflow_coordinator before importing worker
@@ -8,10 +9,23 @@ from unittest.mock import MagicMock
 
 _mf_coord = types.ModuleType("metaflow_coordinator")
 _mf_coord_s3 = types.ModuleType("metaflow_coordinator.s3_queue")
-for _name in ["push_task", "claim_task", "complete_task", "fail_task",
-              "reclaim_stale", "list_pending", "mark_workers_dispatched",
-              "write_task_log", "read_task_log", "_bucket_prefix_from_env",
-              "_done_key", "_failed_key", "_claimed_key", "_ready_key", "_waiting_key"]:
+for _name in [
+    "push_task",
+    "claim_task",
+    "complete_task",
+    "fail_task",
+    "reclaim_stale",
+    "list_pending",
+    "mark_workers_dispatched",
+    "write_task_log",
+    "read_task_log",
+    "_bucket_prefix_from_env",
+    "_done_key",
+    "_failed_key",
+    "_claimed_key",
+    "_ready_key",
+    "_waiting_key",
+]:
     setattr(_mf_coord_s3, _name, MagicMock())
 _mf_coord.s3_queue = _mf_coord_s3
 _sys.modules.setdefault("metaflow_coordinator", _mf_coord)
@@ -111,12 +125,15 @@ def test_max_user_code_retries():
     cmd = _build_step_command(task, "/workdir")
     assert "--max-user-code-retries=5" in cmd
 
+
 # ---------------------------------------------------------------------------
 # _setup_environment
 # ---------------------------------------------------------------------------
 
+
 def test_setup_environment_no_requirements(tmp_path):
     from metaflow_extensions.gha.plugins.worker import _setup_environment
+
     _setup_environment(str(tmp_path), env_id=None)  # no error = pass
 
 
@@ -141,6 +158,7 @@ def test_setup_environment_with_requirements(tmp_path):
 # ---------------------------------------------------------------------------
 # worker idle exit
 # ---------------------------------------------------------------------------
+
 
 def test_worker_exits_after_idle_timeout():
     import time

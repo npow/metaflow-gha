@@ -5,7 +5,7 @@ class ShowGHAFlow(FlowSpec):
     @step
     def start(self):
         self.items = list(range(4))
-        self.next(self.fanout, foreach='items')
+        self.next(self.fanout, foreach="items")
 
     @step
     def fanout(self):
@@ -19,9 +19,9 @@ class ShowGHAFlow(FlowSpec):
 
     @step
     def end(self):
-        print('hello-from-gha')
+        print("hello-from-gha")
         print(self.results)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     ShowGHAFlow()

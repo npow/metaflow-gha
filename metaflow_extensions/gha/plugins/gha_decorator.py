@@ -12,6 +12,7 @@ Usage:
 Or applied flow-wide via CLI:
     python flow.py run --with=gha
 """
+
 from __future__ import annotations
 
 import os
@@ -22,8 +23,12 @@ from metaflow.exception import MetaflowException
 
 # Decorators that are incompatible with @gha (each uses its own compute backend)
 _INCOMPATIBLE_DECORATORS = {
-    "batch", "kubernetes", "argo_workflows_internal",
-    "schedule", "trigger", "trigger_on_finish",
+    "batch",
+    "kubernetes",
+    "argo_workflows_internal",
+    "schedule",
+    "trigger",
+    "trigger_on_finish",
 }
 
 # GHA-hosted runner hard limits
@@ -69,9 +74,7 @@ class GHADecorator(StepDecorator):
         # Block incompatible decorators
         for deco in decos:
             if deco.name in _INCOMPATIBLE_DECORATORS:
-                raise GHAException(
-                    f"@gha is incompatible with @{deco.name} on step '{step}'."
-                )
+                raise GHAException(f"@gha is incompatible with @{deco.name} on step '{step}'.")
 
         # Warn if @resources exceeds GHA limits
         for deco in decos:
@@ -108,9 +111,7 @@ class GHADecorator(StepDecorator):
         if not is_cloned:
             self._save_package_once(self.flow_datastore, self.package)
 
-    def runtime_step_cli(
-        self, cli_args, retry_count, max_user_code_retries, ubf_context
-    ):
+    def runtime_step_cli(self, cli_args, retry_count, max_user_code_retries, ubf_context):
         if retry_count <= max_user_code_retries:
             # Route execution through `gha step` subcommand.
             # cli_args.command_args[0] is already the step name (set by runtime).
@@ -162,7 +163,7 @@ class GHADecorator(StepDecorator):
                     return
 
             # Fallback for environments where package_url() is empty.
-            cls.package_url, cls.package_sha = flow_datastore.save_data(
-                [package.blob], len_hint=1
-            )[0]
+            cls.package_url, cls.package_sha = flow_datastore.save_data([package.blob], len_hint=1)[
+                0
+            ]
             cls.package_metadata = package.package_metadata
