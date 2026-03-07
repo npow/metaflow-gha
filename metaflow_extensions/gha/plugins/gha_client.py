@@ -91,7 +91,10 @@ class GHAClient:
         from .aws_client import make_s3_client
         from .s3_queue_client import S3QueueClient
 
-        self._sync_worker_env_to_repo()
+        # Skip secret/variable sync when already running inside GitHub Actions —
+        # the repo secrets are already configured and GITHUB_TOKEN lacks secrets:write.
+        if not os.environ.get("GITHUB_ACTIONS"):
+            self._sync_worker_env_to_repo()
 
         s3 = s3_client or make_s3_client()
         client = S3QueueClient.from_env(s3)
