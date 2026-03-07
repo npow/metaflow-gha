@@ -110,7 +110,13 @@ def _execute_task(task: dict, worker_id: str, client: "S3QueueClient", run_id: s
     """
     Set up environment and run the Metaflow step command for this task.
     Streams stdout/stderr to both GHA job logs (via print) and S3.
+    Uses mflog capture (same as aws/batch and kubernetes backends) so task
+    logs appear in the Metaflow UI.
     """
+    import shlex
+
+    from metaflow.mflog import BASH_SAVE_LOGS, bash_capture_logs, export_mflog_env_vars
+
     task_id = task["task_id"]
 
     with tempfile.TemporaryDirectory(prefix="mf-gha-task-") as workdir:
@@ -120,12 +126,42 @@ def _execute_task(task: dict, worker_id: str, client: "S3QueueClient", run_id: s
         # 2. Install requirements
         _setup_environment(workdir, task.get("env_id"))
 
-        # 3. Build and run the metaflow step command, streaming output
+        # 3. Build the step command and wrap it with mflog capture.
+        #    This mirrors the approach used by aws/batch and kubernetes:
+        #    - export_mflog_env_vars: sets MFLOG_STDOUT/STDERR, MF_PATHSPEC, etc.
+        #    - bash_capture_logs: tees stdout/stderr to local structured log files
+        #    - BASH_SAVE_LOGS: uploads those files to the Metaflow task datastore
+        #      so the Metaflow UI can display them.
         cmd = _build_step_command(task, workdir)
+        step_cmd_str = " ".join(shlex.quote(arg) for arg in cmd)
+
+        logs_dir = os.path.join(workdir, ".logs")
+        stdout_path = os.path.join(logs_dir, "mflog_stdout")
+        stderr_path = os.path.join(logs_dir, "mflog_stderr")
+
+        mflog_expr = export_mflog_env_vars(
+            flow_name=task["flow_name"],
+            run_id=task["run_id"],
+            step_name=task["step_name"],
+            task_id=task["task_id"],
+            retry_count=str(task["attempt"]),
+            datastore_type="s3",
+            datastore_root=os.environ.get("METAFLOW_DATASTORE_SYSROOT_S3"),
+            stdout_path=stdout_path,
+            stderr_path=stderr_path,
+        )
+        step_expr = bash_capture_logs(step_cmd_str)
+        bash_cmd = (
+            f"mkdir -p {shlex.quote(logs_dir)}"
+            f" && {mflog_expr}"
+            f" && {step_expr}"
+            f"; c=$?; {BASH_SAVE_LOGS}; exit $c"
+        )
+
         print(f"[worker:{worker_id}] Running: {' '.join(cmd)}", flush=True)
 
         proc = subprocess.Popen(
-            cmd,
+            ["bash", "-c", bash_cmd],
             cwd=workdir,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
