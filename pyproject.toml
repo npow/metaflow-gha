@@ -23,6 +23,7 @@ dev = [
     "pytest-cov",
     "moto[s3]",
     "ruff",
+    "metaflow-coordinator>=0.1.5",
 ]
 
 [tool.setuptools.packages.find]

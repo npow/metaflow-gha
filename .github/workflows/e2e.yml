@@ -29,6 +29,7 @@ jobs:
       METAFLOW_GHA_USER_REPO: npow/metaflow-gha
       METAFLOW_GHA_WORKER_REF: ${{ github.sha }}
       METAFLOW_GHA_DISPATCH_REF: main
+      GH_TOKEN: ${{ github.token }}
 
     steps:
       - uses: actions/checkout@v4

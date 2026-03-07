@@ -20,9 +20,20 @@ from unittest.mock import MagicMock, patch
 import boto3
 import pytest
 
-_S3_QUEUE_PATH = pathlib.Path(
-    "/Users/npow/code/metaflow-coordinator/metaflow_coordinator/s3_queue.py"
-)
+
+def _find_s3_queue_path() -> pathlib.Path:
+    # Try installed package first (works on CI after pip install metaflow-coordinator)
+    try:
+        spec = importlib.util.find_spec("metaflow_coordinator.s3_queue")
+        if spec and spec.origin:
+            return pathlib.Path(spec.origin)
+    except (ModuleNotFoundError, ValueError):
+        pass
+    # Fallback to local dev checkout
+    return pathlib.Path("/Users/npow/code/metaflow-coordinator/metaflow_coordinator/s3_queue.py")
+
+
+_S3_QUEUE_PATH = _find_s3_queue_path()
 
 _HAS_REAL_S3_QUEUE = False
 if _S3_QUEUE_PATH.exists():
