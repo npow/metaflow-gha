@@ -1,7 +1,5 @@
 """Shared pytest fixtures for metaflow-gha tests."""
 
-import os
-
 import boto3
 import pytest
 from moto import mock_aws

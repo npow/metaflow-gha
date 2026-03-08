@@ -12,15 +12,9 @@ import time
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from metaflow_coordinator.s3_queue import (
     _bucket_prefix_from_env,
-    _done_key,  # noqa: F401
-    _failed_key,  # noqa: F401
-    _ready_key,  # noqa: F401
     _s3_root,
-    _task_key,  # noqa: F401
-    _waiting_key,  # noqa: F401
     claim_task,
     complete_task,
     fail_task,
